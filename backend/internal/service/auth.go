@@ -1,0 +1,69 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"notion/internal/models/user"
+	"notion/internal/repository"
+	"time"
+
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	salt       = "dfhgsdfhgidu1224"
+	signingKey = "grkjk#4#%35FSFJlja#4353KSFjH"
+	tokenTTL   = 12 * time.Hour
+)
+
+type tokenClaims struct {
+	jwt.RegisteredClaims
+	UserID uuid.UUID `json:"user_id"`
+}
+
+type AuthService struct {
+	repo repository.Authorization
+}
+
+func NewAuthService(repo repository.Authorization) *AuthService {
+	return &AuthService{repo: repo}
+}
+
+func (s *AuthService) CreateUser(ctx context.Context, u user.Request) (uuid.UUID, error) {
+	hash, err := generatePasswordHash(u.Password)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	u.Password = hash
+	return s.repo.CreateUser(ctx, u)
+}
+
+func (s *AuthService) GenerateToken(ctx context.Context, username, password string) (string, error) {
+	u, err := s.repo.GetUser(ctx, username)
+	if err != nil {
+		return "", err
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
+	if err != nil {
+		return "", errors.New("invalid username or password")
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+		u.ID,
+	})
+
+	return token.SignedString([]byte(signingKey))
+}
+
+func generatePasswordHash(password string) (string, error) {
+	hashBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashBytes), nil
+}
