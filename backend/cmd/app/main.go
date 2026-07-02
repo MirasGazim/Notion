@@ -4,6 +4,8 @@ import (
 	"log"
 	"log/slog"
 	"notion/internal/config"
+	"notion/internal/database/postgres"
+	"notion/internal/lib/logger/sl"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -27,8 +29,14 @@ func main() {
 		slog.String("env", cfg.Env),
 		slog.String("version", "123"),
 	)
-}
+	log.Debug("Debug messages are enabled")
 
+	_, err = postgres.New(cfg.StoragePath)
+	if err != nil {
+		log.Error("failed to init storage", sl.Err(err))
+		os.Exit(1)
+	}
+}
 func setupLogger(env string) *slog.Logger {
 	var level slog.Level
 	switch env {
