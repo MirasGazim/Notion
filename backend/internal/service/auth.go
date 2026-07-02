@@ -19,7 +19,7 @@ const (
 )
 
 type tokenClaims struct {
-	jwt.RegisteredClaims
+	jwt.StandardClaims
 	UserID uuid.UUID `json:"user_id"`
 }
 
@@ -58,6 +58,25 @@ func (s *AuthService) GenerateToken(ctx context.Context, username, password stri
 	})
 
 	return token.SignedString([]byte(signingKey))
+}
+
+func (s *AuthService) ParseToken(ctx context.Context, accesstoken string) (uuid.UUID, error) {
+	token, err := jwt.ParseWithClaims(accesstoken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing method")
+		}
+		return []byte(signingKey), nil
+	})
+
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+
+	claims, ok := token.Claims.(*tokenClaims)
+	if !ok {
+		return uuid.UUID{}, errors.New("token claims are not of type *tokenClaims")
+	}
+	return claims.UserID, nil
 }
 
 func generatePasswordHash(password string) (string, error) {
