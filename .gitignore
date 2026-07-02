@@ -3,3 +3,5 @@ local.yaml
 bin/
 vendor/
 ./local.yaml
+./env
+backend/.env
