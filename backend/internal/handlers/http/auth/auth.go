@@ -22,7 +22,7 @@ type Creater interface {
 
 type Response struct {
 	response.Response
-	UUID uuid.UUID
+	UUID uuid.UUID `json:"id"`
 }
 
 func New(log *slog.Logger, creater Creater) http.HandlerFunc {
