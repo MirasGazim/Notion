@@ -29,7 +29,7 @@ func (a *AuthPostgres) CreateUser(ctx context.Context, u user.Request) (uuid.UUI
 	if err := row.Scan(&id); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return uuid.UUID{}, fmt.Errorf("%s: %w", op, ErrUserAlreadyExists)
+			return uuid.UUID{}, fmt.Errorf("%s: %w", op, ErrUserExists)
 		}
 		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
 	}
