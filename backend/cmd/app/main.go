@@ -5,9 +5,12 @@ import (
 	"log/slog"
 	"notion/internal/config"
 	"notion/internal/database/postgres"
+	"notion/internal/handlers/middleware/logger"
 	"notion/internal/lib/logger/sl"
 	"os"
 
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 	"github.com/joho/godotenv"
 )
 
@@ -36,6 +39,14 @@ func main() {
 		log.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
+
+	router := chi.NewRouter()
+	router.Use(middleware.RequestID)
+	router.Use(middleware.Logger)
+	router.Use(logger.New(log))
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
+
 }
 func setupLogger(env string) *slog.Logger {
 	var level slog.Level
