@@ -9,10 +9,13 @@ import (
 	"notion/internal/lib/logger/sl"
 	"notion/internal/models/user"
 	"notion/internal/repository"
+	"notion/internal/service"
+	"time"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 )
 
@@ -20,9 +23,20 @@ type Creater interface {
 	CreateUser(ctx context.Context, user user.SignUpRequest) (uuid.UUID, error)
 }
 
+const (
+	salt       = "dfhgsdfhgidu1224"
+	signingKey = "grkjk#4#%35FSFJlja#4353KSFjH"
+	tokenTTL   = 12 * time.Hour
+)
+
 type Response struct {
 	response.Response
 	UUID uuid.UUID `json:"id"`
+}
+
+type TokenResponse struct {
+	response.Response
+	Token string `json:"token"`
 }
 
 func NewSignUp(log *slog.Logger, creater Creater) http.HandlerFunc {
@@ -75,10 +89,30 @@ func NewSignUp(log *slog.Logger, creater Creater) http.HandlerFunc {
 
 		log.Info("user created")
 
-		render.Status(r, http.StatusCreated)
-		responseOK(w, r, id)
+		jwtToken, err := GenerateToken(ctx, id)
+		if err != nil {
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, map[string]string{
+				"error": err.Error(),
+			})
+			return
+		}
 
+		render.Status(r, http.StatusCreated)
+		responseOK(w, r, jwtToken)
 	}
+}
+
+func GenerateToken(ctx context.Context, id uuid.UUID) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &service.TokenClaims{
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+		UserID: id,
+	})
+
+	return token.SignedString([]byte(signingKey))
 }
 
 // func NewSignIn(log *slog.Logger) http.HandlerFunc {
@@ -92,9 +126,9 @@ func NewSignUp(log *slog.Logger, creater Creater) http.HandlerFunc {
 // 	}
 // }
 
-func responseOK(w http.ResponseWriter, r *http.Request, uuid uuid.UUID) {
-	render.JSON(w, r, Response{
+func responseOK(w http.ResponseWriter, r *http.Request, token string) {
+	render.JSON(w, r, TokenResponse{
 		Response: response.Ok(),
-		UUID:     uuid,
+		Token:    token,
 	})
 }
