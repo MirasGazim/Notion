@@ -3,10 +3,14 @@ package main
 import (
 	"log"
 	"log/slog"
+	"net/http"
 	"notion/internal/config"
 	"notion/internal/database/postgres"
+	"notion/internal/handlers/http/auth"
 	"notion/internal/handlers/middleware/logger"
 	"notion/internal/lib/logger/sl"
+	"notion/internal/repository"
+	"notion/internal/service"
 	"os"
 
 	"github.com/go-chi/chi"
@@ -34,11 +38,14 @@ func main() {
 	)
 	log.Debug("Debug messages are enabled")
 
-	_, err = postgres.New(cfg.StoragePath)
+	storage, err := postgres.New(cfg.StoragePath)
 	if err != nil {
 		log.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
+
+	repos := repository.NewRepository(storage.DB)
+	services := service.NewService(repos)
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
@@ -47,6 +54,19 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
+	router.Post("/SignUp", auth.NewSignUp(log, services.Authorization))
+
+	log.Info("starting server", slog.String("address", cfg.Address))
+	srv := &http.Server{
+		Addr:    cfg.Address,
+		Handler: router,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		log.Error("failed to start server")
+	}
+
+	log.Error("server stopped")
 }
 func setupLogger(env string) *slog.Logger {
 	var level slog.Level
