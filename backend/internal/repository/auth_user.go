@@ -21,7 +21,7 @@ func NewAuthPostgres(db *pgxpool.Pool) *AuthPostgres {
 	return &AuthPostgres{db: db}
 }
 
-func (a *AuthPostgres) CreateUser(ctx context.Context, u user.Request) (uuid.UUID, error) {
+func (a *AuthPostgres) CreateUser(ctx context.Context, u user.SignUpRequest) (uuid.UUID, error) {
 	var id uuid.UUID
 	const op = "repository/auth_user/CreateUser"
 	query := fmt.Sprintf("INSERT INTO %s(email, username, password_hash) values($1, $2, $3) RETURNING id", usersTable)
@@ -35,3 +35,9 @@ func (a *AuthPostgres) CreateUser(ctx context.Context, u user.Request) (uuid.UUI
 	}
 	return id, nil
 }
+
+// func (a *AuthPostgres) GetUser(ctx context.Context, u user.SignInRequest)(user.User, error) {
+// 	var u user.User
+// 	const op = "repository/auth_user/GetUser"
+// 	q
+// }

@@ -17,7 +17,7 @@ import (
 )
 
 type Creater interface {
-	CreateUser(ctx context.Context, user user.Request) (uuid.UUID, error)
+	CreateUser(ctx context.Context, user user.SignUpRequest) (uuid.UUID, error)
 }
 
 type Response struct {
@@ -25,15 +25,15 @@ type Response struct {
 	UUID uuid.UUID `json:"id"`
 }
 
-func New(log *slog.Logger, creater Creater) http.HandlerFunc {
+func NewSignUp(log *slog.Logger, creater Creater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		const op = "handlers/http/auth"
+		const op = "handlers/http/auth/NewSignUp"
 		log = log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
-		var req_u user.Request
+		var req_u user.SignUpRequest
 		err := render.DecodeJSON(r.Body, &req_u)
 		if err != nil {
 			log.Error("failed to decode request body", sl.Err(err))
@@ -80,6 +80,17 @@ func New(log *slog.Logger, creater Creater) http.HandlerFunc {
 
 	}
 }
+
+// func NewSignIn(log *slog.Logger) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		ctx := r.Context()
+// 		const op = "handlers/http/auth/NewSignIn"
+// 		log = log.With(
+// 			slog.String("op", op),
+// 			slog.String("request_id", middleware.GetReqID(r.Context())),
+// 		)
+// 	}
+// }
 
 func responseOK(w http.ResponseWriter, r *http.Request, uuid uuid.UUID) {
 	render.JSON(w, r, Response{

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"notion/internal/models/user"
 	"notion/internal/repository"
 	"time"
@@ -31,34 +32,35 @@ func NewAuthService(repo repository.Authorization) *AuthService {
 	return &AuthService{repo: repo}
 }
 
-func (s *AuthService) CreateUser(ctx context.Context, u user.Request) (uuid.UUID, error) {
+func (s *AuthService) CreateUser(ctx context.Context, u user.SignUpRequest) (uuid.UUID, error) {
+	const op = "service/auth/CreateUser"
 	hash, err := generatePasswordHash(u.Password)
 	if err != nil {
-		return uuid.UUID{}, err
+		return uuid.UUID{}, fmt.Errorf("%s: %w", op, err)
 	}
 	u.Password = hash
 	return s.repo.CreateUser(ctx, u)
 }
 
-func (s *AuthService) GenerateToken(ctx context.Context, username, password string) (string, error) {
-	u, err := s.repo.GetUser(ctx, username)
-	if err != nil {
-		return "", err
-	}
-	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
-	if err != nil {
-		return "", errors.New("invalid username or password")
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
-			IssuedAt:  time.Now().Unix(),
-		},
-		u.ID,
-	})
+// func (s *AuthService) GenerateToken(ctx context.Context, username, password string) (string, error) {
+// 	u, err := s.repo.GetUser(ctx, username)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
+// 	if err != nil {
+// 		return "", errors.New("invalid username or password")
+// 	}
+// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
+// 		jwt.StandardClaims{
+// 			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
+// 			IssuedAt:  time.Now().Unix(),
+// 		},
+// 		u.ID,
+// 	})
 
-	return token.SignedString([]byte(signingKey))
-}
+// 	return token.SignedString([]byte(signingKey))
+// }
 
 func (s *AuthService) ParseToken(ctx context.Context, accesstoken string) (uuid.UUID, error) {
 	token, err := jwt.ParseWithClaims(accesstoken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
