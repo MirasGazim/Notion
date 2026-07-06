@@ -5,6 +5,7 @@ import (
 	"notion/internal/models/user"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -12,6 +13,16 @@ const (
 )
 
 type Authorization interface {
-	CreateUser(ctx context.Context, user user.Request) (uuid.UUID, error)
-	GetUser(ctx context.Context, username string) (user.User, error)
+	CreateUser(ctx context.Context, user user.SignUpRequest) (uuid.UUID, error)
+	// GetUser(ctx context.Context, user user.SignInRequest) (user.User, error)
+}
+
+type Repository struct {
+	Authorization
+}
+
+func NewRepository(db *pgxpool.Pool) *Repository {
+	return &Repository{
+		Authorization: NewAuthPostgres(db),
+	}
 }
