@@ -43,7 +43,6 @@ func main() {
 		log.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
-
 	repos := repository.NewRepository(storage.DB)
 	services := service.NewService(repos)
 
@@ -54,8 +53,8 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
-	router.Post("/SignUp", auth.NewSignUp(log, services.Authorization))
-
+	router.Post("/Sign-up", auth.NewSignUp(log, services))
+	router.Post("/Sign-In", auth.NewSignIn(log, services))
 	log.Info("starting server", slog.String("address", cfg.Address))
 	srv := &http.Server{
 		Addr:    cfg.Address,
