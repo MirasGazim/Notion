@@ -23,5 +23,10 @@ type SignUpRequest struct {
 
 type SignInRequest struct {
 	Username string `json:"username" validate:"required,min=3,max=50"`
-	Password string `json:"password" validate:"required,min=8, max=50"`
+	Password string `json:"password" validate:"required,min=8,max=50"`
+}
+
+type AuthUser struct {
+	ID       uuid.UUID `json:"id"`
+	Password string    `json:"password"`
 }

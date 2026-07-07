@@ -3,14 +3,12 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"notion/internal/repository"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Storage struct {
-	repository.AuthPostgres
-	db *pgxpool.Pool
+	DB *pgxpool.Pool
 }
 
 func New(storagePath string) (*Storage, error) {
@@ -25,8 +23,5 @@ func New(storagePath string) (*Storage, error) {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &Storage{
-		AuthPostgres: *repository.NewAuthPostgres(db), // используем готовый конструктор, разыменовываем указатель
-		db:           db,
-	}, nil
+	return &Storage{DB: db}, nil
 }
