@@ -14,7 +14,7 @@ const (
 
 type Authorization interface {
 	CreateUser(ctx context.Context, user user.SignUpRequest) (uuid.UUID, error)
-	// GetUser(ctx context.Context, user user.SignInRequest) (user.User, error)
+	GetUser(ctx context.Context, user user.SignInRequest) (user.AuthUser, error)
 }
 
 type Repository struct {
