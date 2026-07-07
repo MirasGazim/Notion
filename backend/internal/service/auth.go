@@ -19,7 +19,7 @@ const (
 	tokenTTL   = 12 * time.Hour
 )
 
-type tokenClaims struct {
+type TokenClaims struct {
 	jwt.StandardClaims
 	UserID uuid.UUID `json:"user_id"`
 }
@@ -42,11 +42,29 @@ func (s *AuthService) CreateUser(ctx context.Context, u user.SignUpRequest) (uui
 	return s.repo.CreateUser(ctx, u)
 }
 
+func (s *AuthService) GetUser(ctx context.Context, u user.SignInRequest) (user.AuthUser, error) {
+	const op = "service/auth/GetUser"
+	id, err := s.repo.GetUser(ctx, u)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return user.AuthUser{}, fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
+		}
+		return user.AuthUser{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(id.Password), []byte(u.Password))
+	if err != nil {
+		return user.AuthUser{}, fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
+	}
+	return id, nil
+}
+
 // func (s *AuthService) GenerateToken(ctx context.Context, username, password string) (string, error) {
 // 	u, err := s.repo.GetUser(ctx, username)
 // 	if err != nil {
 // 		return "", err
 // 	}
+
 // 	err = bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password))
 // 	if err != nil {
 // 		return "", errors.New("invalid username or password")
@@ -62,24 +80,24 @@ func (s *AuthService) CreateUser(ctx context.Context, u user.SignUpRequest) (uui
 // 	return token.SignedString([]byte(signingKey))
 // }
 
-func (s *AuthService) ParseToken(ctx context.Context, accesstoken string) (uuid.UUID, error) {
-	token, err := jwt.ParseWithClaims(accesstoken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("invalid signing method")
-		}
-		return []byte(signingKey), nil
-	})
+// func (s *AuthService) ParseToken(ctx context.Context, accesstoken string) (uuid.UUID, error) {
+// 	token, err := jwt.ParseWithClaims(accesstoken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+// 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+// 			return nil, errors.New("invalid signing method")
+// 		}
+// 		return []byte(signingKey), nil
+// 	})
 
-	if err != nil {
-		return uuid.UUID{}, err
-	}
+// 	if err != nil {
+// 		return uuid.UUID{}, err
+// 	}
 
-	claims, ok := token.Claims.(*tokenClaims)
-	if !ok {
-		return uuid.UUID{}, errors.New("token claims are not of type *tokenClaims")
-	}
-	return claims.UserID, nil
-}
+// 	claims, ok := token.Claims.(*tokenClaims)
+// 	if !ok {
+// 		return uuid.UUID{}, errors.New("token claims are not of type *tokenClaims")
+// 	}
+// 	return claims.UserID, nil
+// }
 
 func generatePasswordHash(password string) (string, error) {
 	hashBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
