@@ -7,6 +7,7 @@ import (
 	"notion/internal/models/user"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -36,8 +37,16 @@ func (a *AuthPostgres) CreateUser(ctx context.Context, u user.SignUpRequest) (uu
 	return id, nil
 }
 
-// func (a *AuthPostgres) GetUser(ctx context.Context, u user.SignInRequest)(user.User, error) {
-// 	var u user.User
-// 	const op = "repository/auth_user/GetUser"
-// 	q
-// }
+func (a *AuthPostgres) GetUser(ctx context.Context, u user.SignInRequest) (user.AuthUser, error) {
+	var userRequest user.AuthUser
+	const op = "repository/auth_user/GetUser"
+	query := fmt.Sprintf("SELECT id, password_hash FROM %s WHERE username=$1", usersTable)
+	row := a.db.QueryRow(ctx, query, u.Username)
+	if err := row.Scan(&userRequest.ID, &userRequest.Password); err != nil {
+		if err == pgx.ErrNoRows {
+			return user.AuthUser{}, fmt.Errorf("%s: %w", op, ErrUserNotFound)
+		}
+		return user.AuthUser{}, fmt.Errorf("%s: %w", op, err)
+	}
+	return userRequest, nil
+}
