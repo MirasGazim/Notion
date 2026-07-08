@@ -51,12 +51,13 @@ func AuthMiddleware(log *slog.Logger) func(next http.Handler) http.Handler {
 
 func ParseToken(tokenstring string, secret string) (*service.TokenClaims, error) {
 	claims := &service.TokenClaims{}
-	token, err := jwt.ParseWithClaims(tokenstring, claims, func(t *jwt.Token) (interface{}, error) {
+	funcc := func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
 		return []byte(secret), nil
-	})
+	}
+	token, err := jwt.ParseWithClaims(tokenstring, claims, funcc)
 	if err != nil {
 		return nil, err
 	}
