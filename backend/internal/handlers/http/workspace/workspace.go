@@ -2,17 +2,21 @@ package workspace
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"notion/internal/handlers/middleware/ctx"
 	"notion/internal/lib/api/response"
 	"notion/internal/lib/logger/sl"
+	"notion/internal/models/blocks"
 	"notion/internal/models/workspace"
 
+	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type Creater interface {
@@ -23,11 +27,16 @@ type Getter interface {
 	GetWorkspaces(ctx context.Context, id uuid.UUID) ([]workspace.Workspace, error)
 }
 
+type GetWorkspaceBlocks interface {
+	GetByID(ctx context.Context, id uuid.UUID) (workspace.Workspace, error)
+	GetByWorkspaceID(ctx context.Context, id uuid.UUID) ([]blocks.Block, error)
+}
+
 func NewCreateWorkspace(log *slog.Logger, creater Creater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contx := r.Context()
 		const op = "handlers/http/workspace/CreateWorkspace"
-		log = log.With(
+		log := log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
@@ -82,7 +91,7 @@ func GetAllWorkspaces(log *slog.Logger, getter Getter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contx := r.Context()
 		const op = "handlers/http/workspace/GetWorkspace"
-		log = log.With(
+		log := log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
@@ -111,4 +120,55 @@ func GetAllWorkspaces(log *slog.Logger, getter Getter) http.HandlerFunc {
 
 	}
 
+}
+
+func NewGetWorkspaceBlocks(log *slog.Logger, getter GetWorkspaceBlocks) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		contx := r.Context()
+		const op = "handlers/http/workspace/GetWorkspace"
+		log := log.With(
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
+		)
+
+		UserID := chi.URLParam(r, "id")
+		id, err := uuid.Parse(UserID)
+		if err != nil {
+			log.Error("invalid id", sl.Err(err))
+
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error("invalid id"))
+
+			return
+		}
+
+		var ws workspace.WorkspaceBlocks
+
+		ws.Workspace, err = getter.GetByID(contx, id)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				render.Status(r, http.StatusNotFound)
+				render.JSON(w, r, response.Error("workspace not found"))
+				return
+			}
+			log.Error("failed to get workspace blocks", sl.Err(err))
+
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("failed to get workspace blocks"))
+
+			return
+		}
+		ws.Blocks, err = getter.GetByWorkspaceID(contx, id)
+		if err != nil {
+			log.Error("failed to get Blocks by id", sl.Err(err))
+
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("failed to get blocks"))
+
+			return
+		}
+
+		render.Status(r, http.StatusOK)
+		render.JSON(w, r, ws)
+	}
 }
