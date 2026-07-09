@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"notion/internal/models/blocks"
 	"notion/internal/models/user"
 	"notion/internal/models/workspace"
 
@@ -12,6 +13,7 @@ import (
 const (
 	usersTable     = "users"
 	usersWorkspace = "workspaces"
+	usersBlocks    = "blocks"
 )
 
 type Authorization interface {
@@ -21,6 +23,9 @@ type Authorization interface {
 
 type WorkspaceRepository interface {
 	Create(ctx context.Context, req workspace.CreateWorkspaceRequest) (*workspace.Workspace, error)
+	GetWorkspaces(ctx context.Context, id uuid.UUID) ([]workspace.Workspace, error)
+	GetByID(ctx context.Context, id uuid.UUID) (workspace.Workspace, error)
+	GetByWorkspaceID(ctx context.Context, id uuid.UUID) ([]blocks.Block, error)
 }
 
 type workspaceRepository struct {
@@ -44,10 +49,14 @@ func NewBlockRepository(db *pgxpool.Pool) BlockRepository {
 
 type Repository struct {
 	Authorization
+	BlockRepository
+	WorkspaceRepository
 }
 
 func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{
-		Authorization: NewAuthPostgres(db),
+		Authorization:       NewAuthPostgres(db),
+		BlockRepository:     NewBlockRepository(db),
+		WorkspaceRepository: NewWorkspaceRepository(db),
 	}
 }

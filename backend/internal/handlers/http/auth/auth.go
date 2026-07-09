@@ -47,7 +47,7 @@ func NewSignUp(log *slog.Logger, creater Creater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		const op = "handlers/http/auth/NewSignUp"
-		log = log.With(
+		log := log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
@@ -123,7 +123,7 @@ func NewSignIn(log *slog.Logger, getter Getter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		const op = "handlers/http/auth/NewSignIn"
-		log = log.With(
+		log := log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
@@ -153,13 +153,16 @@ func NewSignIn(log *slog.Logger, getter Getter) http.HandlerFunc {
 		auth, err := getter.GetUser(ctx, signIn)
 		if err != nil {
 			if errors.Is(err, service.ErrInvalidCredentials) {
-				log.Info("User Authentication failed", slog.String("user", signIn.Username))
+				log.Info("User Authentication failed", slog.String("user", err.Error()))
 
 				render.Status(r, http.StatusUnauthorized)
 				render.JSON(w, r, response.Error("Authentication failed"))
 
 				return
 			}
+
+			log.Info("User Authentication failed", slog.String("user", err.Error()))
+
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, response.Error("Internal Server Error"))
 

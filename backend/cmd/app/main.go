@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
 	"notion/internal/config"
 	"notion/internal/database/postgres"
 	"notion/internal/handlers/http/auth"
+	"notion/internal/handlers/http/workspace"
 	"notion/internal/handlers/middleware/jwt"
 	"notion/internal/handlers/middleware/logger"
 	"notion/internal/lib/logger/sl"
@@ -55,16 +55,15 @@ func main() {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
 
-	router.Post("/Sign-p", auth.NewSignUp(log, services))
 	router.Post("/Sign-In", auth.NewSignIn(log, services))
+	router.Post("/Sign-Up", auth.NewSignUp(log, services))
 
 	router.Group(func(r chi.Router) {
 		r.Use(jwt.AuthMiddleware(log))
 
-		r.Post("/users", func(w http.ResponseWriter, r *http.Request) {
-			userID := r.Context().Value("user_id")
-			w.Write([]byte(fmt.Sprintf("user_id from token: %v", userID)))
-		})
+		r.Post("/Workspace", workspace.NewCreateWorkspace(log, services))
+		r.Get("/Workspaces", workspace.GetAllWorkspaces(log, services))
+		r.Get("/Workspaces/{id}/blocks", workspace.NewGetWorkspaceBlocks(log, services))
 	})
 
 	log.Info("starting server", slog.String("address", cfg.Address))
