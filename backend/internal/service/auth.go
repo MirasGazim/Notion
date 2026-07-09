@@ -24,14 +24,6 @@ type TokenClaims struct {
 	UserID uuid.UUID `json:"user_id"`
 }
 
-type AuthService struct {
-	repo repository.Authorization
-}
-
-func NewAuthService(repo repository.Authorization) *AuthService {
-	return &AuthService{repo: repo}
-}
-
 func (s *AuthService) CreateUser(ctx context.Context, u user.SignUpRequest) (uuid.UUID, error) {
 	const op = "service/auth/CreateUser"
 	hash, err := generatePasswordHash(u.Password)
@@ -54,7 +46,7 @@ func (s *AuthService) GetUser(ctx context.Context, u user.SignInRequest) (user.A
 
 	err = bcrypt.CompareHashAndPassword([]byte(id.Password), []byte(u.Password))
 	if err != nil {
-		return user.AuthUser{}, fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
+		return user.AuthUser{}, fmt.Errorf("%s: %w", op, err)
 	}
 	return id, nil
 }

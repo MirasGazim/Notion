@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"notion/internal/handlers/middleware/ctx"
 	"notion/internal/service"
 	"strings"
 
@@ -32,18 +33,18 @@ func AuthMiddleware(log *slog.Logger) func(next http.Handler) http.Handler {
 
 			parts := strings.Split(auth_header, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
+				log.Error("invalid auth header", slog.String("error", "Unauthorized"))
 				http.Error(w, "invalid auth header", http.StatusUnauthorized)
 				return
 			}
 			tokenstring := parts[1]
 			claims, err := ParseToken(tokenstring, signingKey)
 			if err != nil {
-				http.Error(w, "error 1", http.StatusUnauthorized)
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
-			ctx := context.WithValue(r.Context(), "user_id", claims.UserID)
+			ctx := context.WithValue(r.Context(), ctx.UserIDKey, claims.UserID)
 			next.ServeHTTP(w, r.WithContext(ctx))
-
 		}
 		return http.HandlerFunc(fn)
 	}
