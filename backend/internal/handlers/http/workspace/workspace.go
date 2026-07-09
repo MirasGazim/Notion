@@ -19,10 +19,14 @@ type Creater interface {
 	Create(ctx context.Context, req workspace.CreateWorkspaceRequest) (*workspace.Workspace, error)
 }
 
+type Getter interface {
+	GetWorkspaces(ctx context.Context, id uuid.UUID) ([]workspace.Workspace, error)
+}
+
 func NewCreateWorkspace(log *slog.Logger, creater Creater) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		contx := r.Context()
-		const op = "handlers/http/workspace/CreateCreateWorkspace"
+		const op = "handlers/http/workspace/CreateWorkspace"
 		log = log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
@@ -58,7 +62,6 @@ func NewCreateWorkspace(log *slog.Logger, creater Creater) http.HandlerFunc {
 		}
 
 		ws.ID = userId
-
 		created, err := creater.Create(contx, ws)
 		if err != nil {
 			log.Error("failed to create workspace", sl.Err(err))
@@ -73,4 +76,39 @@ func NewCreateWorkspace(log *slog.Logger, creater Creater) http.HandlerFunc {
 		render.Status(r, http.StatusCreated)
 		render.JSON(w, r, created)
 	}
+}
+
+func GetAllWorkspaces(log *slog.Logger, getter Getter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		contx := r.Context()
+		const op = "handlers/http/workspace/GetWorkspace"
+		log = log.With(
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
+		)
+
+		userId, ok := r.Context().Value(ctx.UserIDKey).(uuid.UUID)
+		if !ok {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+
+		}
+		log.Info("userId got", slog.Any("UserID", userId))
+		workspace, err := getter.GetWorkspaces(contx, userId)
+		if err != nil {
+			log.Error("failed to get workspace", sl.Err(err))
+
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("failed to get workspace"))
+
+			return
+		}
+
+		log.Info("workspace got")
+
+		render.Status(r, http.StatusOK)
+		render.JSON(w, r, workspace)
+
+	}
+
 }
