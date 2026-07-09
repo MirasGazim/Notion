@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"notion/internal/models/blocks"
 	"notion/internal/models/workspace"
 
 	"github.com/google/uuid"
@@ -13,4 +14,12 @@ func (s *workspaceService) Create(ctx context.Context, req workspace.CreateWorks
 
 func (s *workspaceService) GetWorkspaces(ctx context.Context, id uuid.UUID) ([]workspace.Workspace, error) {
 	return s.repo.GetWorkspaces(ctx, id)
+}
+
+func (s *workspaceService) GetByID(ctx context.Context, id uuid.UUID) (workspace.Workspace, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
+func (s *workspaceService) GetByWorkspaceID(ctx context.Context, id uuid.UUID) ([]blocks.Block, error) {
+	return s.repo.GetByWorkspaceID(ctx, id)
 }
