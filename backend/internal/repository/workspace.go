@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"notion/internal/models/workspace"
+
+	"github.com/google/uuid"
 )
 
 func (r *workspaceRepository) Create(ctx context.Context, req workspace.CreateWorkspaceRequest) (*workspace.Workspace, error) {
@@ -16,4 +18,30 @@ func (r *workspaceRepository) Create(ctx context.Context, req workspace.CreateWo
 	}
 
 	return &ws, nil
+}
+
+func (r *workspaceRepository) GetWorkspaces(ctx context.Context, id uuid.UUID) ([]workspace.Workspace, error) {
+	ws := []workspace.Workspace{}
+
+	query := fmt.Sprintf("SELECT id, owner_id, name, created_at FROM %s WHERE owner_id=$1", usersWorkspace)
+	rows, err := r.db.Query(ctx, query, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var w workspace.Workspace
+		err := rows.Scan(&w.ID, &w.OwnerID, &w.Name, &w.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		ws = append(ws, w)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ws, nil
 }
