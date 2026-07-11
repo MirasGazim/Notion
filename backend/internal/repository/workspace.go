@@ -84,3 +84,15 @@ func (r *workspaceRepository) GetByWorkspaceID(ctx context.Context, id uuid.UUID
 	return ws, nil
 
 }
+
+func (r *workspaceRepository) Update(ctx context.Context, name workspace.CreateWorkspaceRequest) (workspace.Workspace, error) {
+	var ws workspace.Workspace
+	query := fmt.Sprintf("UPDATE %s SET name=$1 WHERE id=$2 RETURNING id, owner_id, name, created_at", usersWorkspace)
+	err := r.db.QueryRow(ctx, query, name.Name, name.ID).Scan(&ws.ID, &ws.OwnerID, &ws.Name, &ws.CreatedAt)
+	if err != nil {
+		return workspace.Workspace{}, err
+	}
+
+	return ws, nil
+
+}
