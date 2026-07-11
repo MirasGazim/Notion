@@ -26,6 +26,7 @@ type WorkspaceRepository interface {
 	GetWorkspaces(ctx context.Context, id uuid.UUID) ([]workspace.Workspace, error)
 	GetByID(ctx context.Context, id uuid.UUID) (workspace.Workspace, error)
 	GetByWorkspaceID(ctx context.Context, id uuid.UUID) ([]blocks.Block, error)
+	Update(ctx context.Context, name workspace.CreateWorkspaceRequest) (workspace.Workspace, error)
 }
 
 type workspaceRepository struct {

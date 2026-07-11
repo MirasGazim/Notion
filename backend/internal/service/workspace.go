@@ -23,3 +23,7 @@ func (s *workspaceService) GetByID(ctx context.Context, id uuid.UUID) (workspace
 func (s *workspaceService) GetByWorkspaceID(ctx context.Context, id uuid.UUID) ([]blocks.Block, error) {
 	return s.repo.GetByWorkspaceID(ctx, id)
 }
+
+func (s *workspaceService) UpdateWs(ctx context.Context, name workspace.CreateWorkspaceRequest) (workspace.Workspace, error) {
+	return s.repo.Update(ctx, name)
+}

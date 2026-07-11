@@ -64,6 +64,7 @@ func main() {
 		r.Post("/Workspace", workspace.NewCreateWorkspace(log, services))
 		r.Get("/Workspaces", workspace.GetAllWorkspaces(log, services))
 		r.Get("/Workspaces/{id}/blocks", workspace.NewGetWorkspaceBlocks(log, services))
+		r.Patch("/Workspaces/{id}", workspace.UpdateWorkspace(log, services))
 	})
 
 	log.Info("starting server", slog.String("address", cfg.Address))

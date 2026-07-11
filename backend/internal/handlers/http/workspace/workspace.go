@@ -23,6 +23,10 @@ type Creater interface {
 	Create(ctx context.Context, req workspace.CreateWorkspaceRequest) (*workspace.Workspace, error)
 }
 
+type Updater interface {
+	UpdateWs(ctx context.Context, name workspace.CreateWorkspaceRequest) (workspace.Workspace, error)
+}
+
 type Getter interface {
 	GetWorkspaces(ctx context.Context, id uuid.UUID) ([]workspace.Workspace, error)
 }
@@ -142,6 +146,8 @@ func NewGetWorkspaceBlocks(log *slog.Logger, getter GetWorkspaceBlocks) http.Han
 			return
 		}
 
+		log.Debug("workspace id parsed", slog.String("id", id.String()))
+
 		var ws workspace.WorkspaceBlocks
 
 		ws.Workspace, err = getter.GetByID(contx, id)
@@ -151,13 +157,16 @@ func NewGetWorkspaceBlocks(log *slog.Logger, getter GetWorkspaceBlocks) http.Han
 				render.JSON(w, r, response.Error("workspace not found"))
 				return
 			}
-			log.Error("failed to get workspace blocks", sl.Err(err))
+			log.Error("failed to get workspace", sl.Err(err))
 
 			render.Status(r, http.StatusInternalServerError)
-			render.JSON(w, r, response.Error("failed to get workspace blocks"))
+			render.JSON(w, r, response.Error("failed to get workspace "))
 
 			return
 		}
+
+		log.Info("workspace fetched", slog.String("workspace_id", id.String()))
+
 		ws.Blocks, err = getter.GetByWorkspaceID(contx, id)
 		if err != nil {
 			log.Error("failed to get Blocks by id", sl.Err(err))
@@ -167,8 +176,75 @@ func NewGetWorkspaceBlocks(log *slog.Logger, getter GetWorkspaceBlocks) http.Han
 
 			return
 		}
+		log.Info("workspace blocks fetched",
+			slog.String("workspace_id", id.String()),
+			slog.Int("count", len(ws.Blocks)),
+		)
 
 		render.Status(r, http.StatusOK)
 		render.JSON(w, r, ws)
+	}
+}
+
+func UpdateWorkspace(log *slog.Logger, updater Updater) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		contx := r.Context()
+		const op = "handlers/http/workspace/GetWorkspace"
+		log := log.With(
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
+		)
+
+		workspaceID := chi.URLParam(r, "id")
+		wsID, err := uuid.Parse(workspaceID)
+		if err != nil {
+			log.Error("invalid id", sl.Err(err))
+
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error("invalid id"))
+
+			return
+		}
+
+		log.Debug("workspace id parsed", slog.String("id", wsID.String()))
+
+		var ws workspace.CreateWorkspaceRequest
+		ws.ID = wsID
+
+		err = render.DecodeJSON(r.Body, &ws)
+		if err != nil {
+			log.Error("failed to decode request body", sl.Err(err))
+
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.Error("failed to decode request"))
+
+			return
+		}
+
+		log.Info("request body decoded", slog.Any("request", ws))
+
+		if err := validator.New().Struct(ws); err != nil {
+			validateErr := err.(validator.ValidationErrors)
+			log.Error("invalid request", sl.Err(err))
+
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, response.ValidationError(validateErr))
+
+			return
+		}
+
+		workspace, err := updater.UpdateWs(contx, ws)
+		if err != nil {
+			log.Error("failed to update workspace", sl.Err(err))
+
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, response.Error("failed to update workspace"))
+
+			return
+		}
+		log.Info("workspace updated", slog.Any("workspace", workspace))
+
+		render.Status(r, http.StatusOK)
+		render.JSON(w, r, workspace)
 	}
 }
