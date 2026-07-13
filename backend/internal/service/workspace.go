@@ -27,3 +27,7 @@ func (s *workspaceService) GetByWorkspaceID(ctx context.Context, id uuid.UUID) (
 func (s *workspaceService) UpdateWs(ctx context.Context, name workspace.CreateWorkspaceRequest) (workspace.Workspace, error) {
 	return s.repo.Update(ctx, name)
 }
+
+func (r *workspaceService) Delete(ctx context.Context, id uuid.UUID) error {
+	return r.repo.Delete(ctx, id)
+}
