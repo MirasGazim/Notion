@@ -7,6 +7,7 @@ import (
 	"notion/internal/models/workspace"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 func (r *workspaceRepository) Create(ctx context.Context, req workspace.CreateWorkspaceRequest) (*workspace.Workspace, error) {
@@ -95,4 +96,15 @@ func (r *workspaceRepository) Update(ctx context.Context, name workspace.CreateW
 
 	return ws, nil
 
+}
+
+func (r *workspaceRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	tag, err := r.db.Exec(ctx, "DELETE FROM workspaces WHERE id=$1", id)
+	if err != nil {
+		return fmt.Errorf("delete workspace: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
 }

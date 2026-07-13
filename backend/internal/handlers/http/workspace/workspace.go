@@ -19,6 +19,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+type Deleter interface {
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
 type Creater interface {
 	Create(ctx context.Context, req workspace.CreateWorkspaceRequest) (*workspace.Workspace, error)
 }
@@ -246,5 +250,38 @@ func UpdateWorkspace(log *slog.Logger, updater Updater) http.HandlerFunc {
 
 		render.Status(r, http.StatusOK)
 		render.JSON(w, r, workspace)
+	}
+}
+
+func DeleteWorkspace(log *slog.Logger, deleter Deleter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		contx := r.Context()
+		const op = "handlers/http/workspace/GetWorkspace"
+		log := log.With(
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
+		)
+
+		ID := chi.URLParam(r, "id")
+		workspaceID, err := uuid.Parse(ID)
+		if err != nil {
+
+			log.Error("Invalid id", sl.Err(err))
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, "invalid id")
+		}
+
+		log.Debug("workspace id parsed", slog.String("id", workspaceID.String()))
+
+		err = deleter.Delete(contx, workspaceID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				http.Error(w, "workspace not found", http.StatusNotFound)
+				return
+			}
+			log.Error("failed to delete workspace", "error", err, "workspace_id", workspaceID)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
 	}
 }

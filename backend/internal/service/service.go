@@ -39,6 +39,7 @@ type WorkspaceService interface {
 	GetByID(ctx context.Context, id uuid.UUID) (workspace.Workspace, error)
 	GetByWorkspaceID(ctx context.Context, id uuid.UUID) ([]blocks.Block, error)
 	UpdateWs(ctx context.Context, name workspace.CreateWorkspaceRequest) (workspace.Workspace, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type workspaceService struct {
