@@ -19,6 +19,7 @@ const (
 type Authorization interface {
 	CreateUser(ctx context.Context, user user.SignUpRequest) (uuid.UUID, error)
 	GetUser(ctx context.Context, user user.SignInRequest) (user.AuthUser, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 type WorkspaceRepository interface {
@@ -27,6 +28,7 @@ type WorkspaceRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (workspace.Workspace, error)
 	GetByWorkspaceID(ctx context.Context, id uuid.UUID) ([]blocks.Block, error)
 	Update(ctx context.Context, name workspace.CreateWorkspaceRequest) (workspace.Workspace, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type workspaceRepository struct {
