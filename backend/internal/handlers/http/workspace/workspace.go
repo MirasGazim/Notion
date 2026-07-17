@@ -283,5 +283,7 @@ func DeleteWorkspace(log *slog.Logger, deleter Deleter) http.HandlerFunc {
 			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

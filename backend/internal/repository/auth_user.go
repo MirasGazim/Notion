@@ -50,3 +50,14 @@ func (a *AuthPostgres) GetUser(ctx context.Context, u user.SignInRequest) (user.
 	}
 	return userRequest, nil
 }
+
+func (a *AuthPostgres) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	tag, err := a.db.Exec(ctx, "DELETE FROM users WHERE id=$1", id)
+	if err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	return nil
+}

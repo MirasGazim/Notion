@@ -7,6 +7,7 @@ import (
 	"notion/internal/config"
 	"notion/internal/database/postgres"
 	"notion/internal/handlers/http/auth"
+	"notion/internal/handlers/http/users"
 	"notion/internal/handlers/http/workspace"
 	"notion/internal/handlers/middleware/jwt"
 	"notion/internal/handlers/middleware/logger"
@@ -65,6 +66,8 @@ func main() {
 		r.Get("/Workspaces", workspace.GetAllWorkspaces(log, services))
 		r.Get("/Workspaces/{id}/blocks", workspace.NewGetWorkspaceBlocks(log, services))
 		r.Patch("/Workspaces/{id}", workspace.UpdateWorkspace(log, services))
+		r.Delete("/Workspaces/{id}", workspace.DeleteWorkspace(log, services))
+		r.Delete("/Users/", users.NewDelete(log, services))
 	})
 
 	log.Info("starting server", slog.String("address", cfg.Address))

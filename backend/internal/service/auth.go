@@ -46,7 +46,7 @@ func (s *AuthService) GetUser(ctx context.Context, u user.SignInRequest) (user.A
 
 	err = bcrypt.CompareHashAndPassword([]byte(id.Password), []byte(u.Password))
 	if err != nil {
-		return user.AuthUser{}, fmt.Errorf("%s: %w", op, err)
+		return user.AuthUser{}, fmt.Errorf("%s: %w", op, ErrInvalidCredentials)
 	}
 	return id, nil
 }
@@ -78,4 +78,8 @@ func generatePasswordHash(password string) (string, error) {
 		return "", err
 	}
 	return string(hashBytes), nil
+}
+
+func (s *AuthService) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	return s.repo.DeleteUser(ctx, id)
 }
