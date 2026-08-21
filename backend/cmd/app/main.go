@@ -36,7 +36,7 @@ func main() {
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
 	log.Info(
-		"starting url-shortener",
+		"starting notion",
 		slog.String("env", cfg.Env),
 		slog.String("version", "123"),
 	)
@@ -63,6 +63,13 @@ func main() {
 	router.Use(logger.New(log))
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
 	router.Post("/sign-in", auth.NewSignIn(log, services))
 	router.Post("/sign-up", auth.NewSignUp(log, services))
