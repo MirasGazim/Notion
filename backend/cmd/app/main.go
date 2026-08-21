@@ -51,6 +51,13 @@ func main() {
 	services := service.NewService(repos)
 
 	router := chi.NewRouter()
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(logger.New(log))
@@ -64,8 +71,8 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	router.Post("/Sign-In", auth.NewSignIn(log, services))
-	router.Post("/Sign-Up", auth.NewSignUp(log, services))
+	router.Post("/sign-in", auth.NewSignIn(log, services))
+	router.Post("/sign-up", auth.NewSignUp(log, services))
 
 	router.Group(func(r chi.Router) {
 		r.Use(jwt.AuthMiddleware(log))
