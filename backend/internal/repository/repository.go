@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 const (
@@ -32,22 +33,30 @@ type WorkspaceRepository interface {
 }
 
 type workspaceRepository struct {
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
+	client *redis.Client
 }
 
-func NewWorkspaceRepository(db *pgxpool.Pool) WorkspaceRepository {
-	return &workspaceRepository{db: db}
+func NewWorkspaceRepository(db *pgxpool.Pool, client *redis.Client) WorkspaceRepository {
+	return &workspaceRepository{
+		db:     db,
+		client: client,
+	}
 }
 
 type BlockRepository interface {
 }
 
 type blockRepository struct {
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
+	client *redis.Client
 }
 
-func NewBlockRepository(db *pgxpool.Pool) BlockRepository {
-	return &blockRepository{db: db}
+func NewBlockRepository(db *pgxpool.Pool, client *redis.Client) BlockRepository {
+	return &blockRepository{
+		db:     db,
+		client: client,
+	}
 }
 
 type Repository struct {
@@ -56,10 +65,10 @@ type Repository struct {
 	WorkspaceRepository
 }
 
-func NewRepository(db *pgxpool.Pool) *Repository {
+func NewRepository(db *pgxpool.Pool, client *redis.Client) *Repository {
 	return &Repository{
-		Authorization:       NewAuthPostgres(db),
-		BlockRepository:     NewBlockRepository(db),
-		WorkspaceRepository: NewWorkspaceRepository(db),
+		Authorization:       NewAuthPostgres(db, client),
+		BlockRepository:     NewBlockRepository(db, client),
+		WorkspaceRepository: NewWorkspaceRepository(db, client),
 	}
 }

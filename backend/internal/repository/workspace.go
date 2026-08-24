@@ -2,13 +2,17 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"notion/internal/models/blocks"
 	"notion/internal/models/workspace"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
+
+const Workspace = 0
 
 func (r *workspaceRepository) Create(ctx context.Context, req workspace.CreateWorkspaceRequest) (*workspace.Workspace, error) {
 	query := fmt.Sprintf("INSERT INTO %s(owner_id, name) VALUES($1, $2) RETURNING id, owner_id, name, created_at", usersWorkspace)
@@ -46,6 +50,7 @@ func (r *workspaceRepository) GetWorkspaces(ctx context.Context, id uuid.UUID) (
 	}
 
 	return ws, nil
+
 }
 
 func (r *workspaceRepository) GetByID(ctx context.Context, id uuid.UUID) (workspace.Workspace, error) {
@@ -55,6 +60,18 @@ func (r *workspaceRepository) GetByID(ctx context.Context, id uuid.UUID) (worksp
 	if err != nil {
 		return workspace.Workspace{}, fmt.Errorf("repository.GetByID: %w", err)
 	}
+
+	data, err := json.Marshal(ws)
+	if err != nil {
+		panic(err)
+	}
+
+	key := "user:workspace:" + id.String()
+	err = r.client.Set(ctx, key, data, Workspace).Err()
+	if err == nil {
+		_ = r.client.Set(ctx, key, data, 24*time.Hour).Err()
+	}
+
 	return ws, nil
 }
 
