@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"log/slog"
 	"net/http"
@@ -20,6 +21,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 const (
@@ -47,7 +49,23 @@ func main() {
 		log.Error("failed to init storage", sl.Err(err))
 		os.Exit(1)
 	}
-	repos := repository.NewRepository(storage.DB)
+
+	defer storage.DB.Close()
+
+	Nclient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	defer Nclient.Close()
+
+	if err := Nclient.Ping(context.Background()).Err(); err != nil {
+		log.Error("failed to connect to redis", sl.Err(err))
+		os.Exit(1)
+	}
+
+	repos := repository.NewRepository(storage.DB, Nclient)
 	services := service.NewService(repos)
 
 	router := chi.NewRouter()
@@ -58,6 +76,7 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
 	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
 	router.Use(logger.New(log))
@@ -77,6 +96,7 @@ func main() {
 	router.Group(func(r chi.Router) {
 		r.Use(jwt.AuthMiddleware(log))
 
+		r.Post("/Workspace", workspace.NewCreateWorkspace(log, services))
 		r.Post("/Workspace", workspace.NewCreateWorkspace(log, services))
 		r.Get("/Workspaces", workspace.GetAllWorkspaces(log, services))
 		r.Get("/Workspaces/{id}/blocks", workspace.NewGetWorkspaceBlocks(log, services))

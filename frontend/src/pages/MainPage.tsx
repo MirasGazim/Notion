@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { authService } from '../services/authService';
+import { buildBlockTree } from '../utils/tree';
+import { Block } from '../components/editor/Block';
 
 export const MainPage = () => {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
@@ -10,26 +12,28 @@ export const MainPage = () => {
     setSelectedWorkspaceId(id);
     try {
       const response = await authService.getWorkspaceBlocks(id);
-      // Теперь правильно получаем массив блоков
       setBlocks(response.data.blocks || []);
     } catch (error) {
       console.error('Ошибка загрузки блоков:', error);
-      setBlocks([]); // Очищаем при ошибке
+      setBlocks([]);
     }
   };
+
+  const blockTree = useMemo(() => buildBlockTree(blocks), [blocks]);
 
   return (
     <MainLayout onWorkspaceSelect={handleWorkspaceSelect}>
       {selectedWorkspaceId ? (
         <div>
-          {blocks.length === 0 ? (
+          {blockTree.length === 0 ? (
             <div style={{ color: '#767671', marginTop: '20px' }}>
               <p>Здесь пока пусто. Создайте первый блок, чтобы начать работу.</p>
             </div>
           ) : (
             <div>
-              <h1>Содержимое пространства: {selectedWorkspaceId}</h1>
-              <pre>{JSON.stringify(blocks, null, 2)}</pre>
+              {blockTree.map(block => (
+                <Block key={block.id} block={block} onUpdate={() => handleWorkspaceSelect(selectedWorkspaceId!)} />
+              ))}
             </div>
           )}
         </div>

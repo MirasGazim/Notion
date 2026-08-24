@@ -30,11 +30,14 @@ export const authService = {
   getWorkspaceBlocks: async (id: string) => {
     return await api.get(`/Workspaces/${id}/blocks`);
   },
-  updateWorkspace: async (id: string, data: { name: string }) => {
-    return await api.patch(`/Workspaces/${id}`, data);
+  updateBlock: async (id: string, data: { type: string, content: any }) => {
+    return await api.patch(`/Blocks/${id}`, data);
   },
-  deleteWorkspace: async (id: string) => {
-    return await api.delete(`/Workspaces/${id}`);
+  deleteBlock: async (id: string) => {
+    return await api.delete(`/Blocks/${id}`);
+  },
+  createBlock: async (data: { type: string, content: any, workspace_id: string, parent_block_id: string | null }) => {
+    return await api.post('/Blocks', data);
   },
   
   // Users
