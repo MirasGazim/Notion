@@ -13,11 +13,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type Claims struct {
-	UserID int `json:"user_id"`
-	jwt.RegisteredClaims
-}
-
 var (
 	ErrInvalidToken = errors.New("invalid token")
 )
@@ -40,6 +35,7 @@ func AuthMiddleware(log *slog.Logger) func(next http.Handler) http.Handler {
 			tokenstring := parts[1]
 			claims, err := ParseToken(tokenstring, signingKey)
 			if err != nil {
+				log.Error("failed to parse token", slog.String("error", err.Error()))
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
