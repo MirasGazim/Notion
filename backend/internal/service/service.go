@@ -23,9 +23,6 @@ type Service struct {
 	WorkspaceService
 }
 
-type BlockService interface {
-}
-
 type AuthService struct {
 	repo Authorization
 }

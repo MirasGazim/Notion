@@ -1,19 +1,22 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { SignIn } from './pages/SignIn';
-import { SignUp } from './pages/SignUp';
-import { MainPage } from './pages/MainPage';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthContext";
+import { ProtectedRoute } from "./auth/ProtectedRoute";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
 
-function App() {
+export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/sign-in" element={<SignIn />} />
-        <Route path="/sign-up" element={<SignUp />} />
-        <Route path="/main" element={<MainPage />} />
-        <Route path="/" element={<Navigate to="/sign-in" />} />
-      </Routes>
-    </Router>
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/sign-up" element={<SignUp />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<div>Dashboard / Workspaces here</div>} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
-
-export default App;

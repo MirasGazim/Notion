@@ -32,19 +32,10 @@ type WorkspaceRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
-type workspaceRepository struct {
-	db     *pgxpool.Pool
-	client *redis.Client
-}
-
-func NewWorkspaceRepository(db *pgxpool.Pool, client *redis.Client) WorkspaceRepository {
-	return &workspaceRepository{
-		db:     db,
-		client: client,
-	}
-}
-
 type BlockRepository interface {
+	Create(ctx context.Context, req blocks.CreateBlockRequest, workspaceID, user_id uuid.UUID) (*blocks.Block, error)
+	Update(ctx context.Context, id, workspaceID, userID uuid.UUID, fields map[string]any) (*blocks.Block, error)
+	GetByID(ctx context.Context, id, workspaceID, userID uuid.UUID) (*blocks.Block, error)
 }
 
 type blockRepository struct {
@@ -57,6 +48,18 @@ func NewBlockRepository(db *pgxpool.Pool, client *redis.Client) BlockRepository 
 		db:     db,
 		client: client,
 	}
+}
+
+func NewWorkspaceRepository(db *pgxpool.Pool, client *redis.Client) WorkspaceRepository {
+	return &workspaceRepository{
+		db:     db,
+		client: client,
+	}
+}
+
+type workspaceRepository struct {
+	db     *pgxpool.Pool
+	client *redis.Client
 }
 
 type Repository struct {

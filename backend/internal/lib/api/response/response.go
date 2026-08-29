@@ -1,6 +1,7 @@
 package response
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -13,8 +14,9 @@ type Response struct {
 }
 
 const (
-	StatusOk    = "OK"
-	StatusError = "Error"
+	StatusOk      = "OK"
+	StatusError   = "Error"
+	StatusCreated = "Created"
 )
 
 func Ok() Response {
@@ -25,6 +27,19 @@ func Error(msq string) Response {
 	return Response{
 		Status: StatusError,
 		Error:  msq,
+	}
+}
+
+func Created() Response {
+	return Response{Status: StatusCreated}
+}
+func RootCause(err error) error {
+	for {
+		unwrapped := errors.Unwrap(err)
+		if unwrapped == nil {
+			return err
+		}
+		err = unwrapped
 	}
 }
 

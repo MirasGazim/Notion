@@ -1,6 +1,7 @@
 package blocks
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,4 +17,16 @@ type Block struct {
 	CreatedBy   uuid.UUID              `json:"created_by"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
+}
+
+type CreateBlockRequest struct {
+	Type     string                 `json:"type"`
+	ParentID *uuid.UUID             `json:"parent_id"`
+	Content  map[string]interface{} `json:"content"`
+	Position float64                `json:"position"`
+}
+
+type UpdateBlockRequest struct {
+	Type    *string          `json:"type,omitempty"`
+	Content *json.RawMessage `json:"content,omitempty"`
 }
