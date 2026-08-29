@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"notion/internal/models/blocks"
+	"notion/internal/repository"
 
 	"github.com/google/uuid"
 )
@@ -15,6 +17,7 @@ var (
 
 type BlockService interface {
 	CreateBlock(ctx context.Context, req blocks.CreateBlockRequest, WorkspaceID, UserID uuid.UUID) (*blocks.Block, error)
+	Update(ctx context.Context, id, workspaceID, userID uuid.UUID, req blocks.UpdateBlockRequest) (*blocks.Block, error)
 }
 
 type ValidationError struct {
@@ -45,6 +48,72 @@ func (s *blockService) CreateBlock(ctx context.Context, req blocks.CreateBlockRe
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return block, nil
+}
+
+func (s *blockService) Update(ctx context.Context, id, workspaceID, userID uuid.UUID, req blocks.UpdateBlockRequest) (*blocks.Block, error) {
+	const op = "service.UpdateBlock"
+	fields := map[string]any{}
+	if req.Type != nil {
+		blockType := *req.Type
+		var contentMap map[string]interface{}
+		if req.Content != nil {
+			err := json.Unmarshal(*req.Content, &contentMap)
+			if err != nil {
+				return nil, fmt.Errorf("invalid content json: %w", err)
+			}
+		} else {
+			contentMap = DefaultContentForType(blockType)
+		}
+
+		if err := ValidateBlockContent(blockType, contentMap); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, &ValidationError{Err: err})
+		}
+		fields["type"] = blockType
+		fields["content"] = contentMap
+	} else if req.Content != nil {
+		existingBlock, err := s.repo.GetByID(ctx, id, workspaceID, userID)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		var contentMap map[string]interface{}
+		if err := json.Unmarshal(*req.Content, &contentMap); err != nil {
+			return nil, fmt.Errorf("invalid content json: %w", err)
+		}
+		if err := ValidateBlockContent(existingBlock.Type, contentMap); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, &ValidationError{Err: err})
+		}
+		fields["content"] = contentMap
+	} else {
+		return nil, fmt.Errorf("%s: %w", op, repository.ErrNoFieldsToUpdate)
+	}
+	return s.repo.Update(ctx, id, workspaceID, userID, fields)
+}
+
+func DefaultContentForType(blockType string) map[string]interface{} {
+	switch blockType {
+	case "checknox":
+		return map[string]interface{}{"checked": false}
+	case "text":
+		return map[string]interface{}{"text": ""}
+	case "number":
+		return map[string]interface{}{"number": 0}
+	case "date":
+		return map[string]interface{}{"date": nil}
+	case "email":
+		return map[string]interface{}{"email": ""}
+	case "url":
+		return map[string]interface{}{"url": ""}
+	case "phone":
+		return map[string]interface{}{"phone": ""}
+	case "multiple_choice":
+		return map[string]interface{}{"options": []string{}}
+	case "person":
+		return map[string]interface{}{"user_ids": []string{}}
+	case "files":
+		return map[string]interface{}{"files": []interface{}{}}
+	default:
+		return map[string]interface{}{}
+	}
 }
 
 func ValidateBlockContent(blocktype string, content map[string]interface{}) error {
