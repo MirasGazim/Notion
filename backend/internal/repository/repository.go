@@ -34,6 +34,8 @@ type WorkspaceRepository interface {
 
 type BlockRepository interface {
 	Create(ctx context.Context, req blocks.CreateBlockRequest, workspaceID, user_id uuid.UUID) (*blocks.Block, error)
+	Update(ctx context.Context, id, workspaceID, userID uuid.UUID, fields map[string]any) (*blocks.Block, error)
+	GetByID(ctx context.Context, id, workspaceID, userID uuid.UUID) (*blocks.Block, error)
 }
 
 type blockRepository struct {
