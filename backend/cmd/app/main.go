@@ -71,7 +71,7 @@ func main() {
 
 	router := chi.NewRouter()
 	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost:5174"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: true,
@@ -83,13 +83,6 @@ func main() {
 	router.Use(logger.New(log))
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.URLFormat)
-	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
 
 	router.Post("/sign-in", auth.NewSignIn(log, services))
 	router.Post("/sign-up", auth.NewSignUp(log, services))
@@ -104,6 +97,7 @@ func main() {
 		r.Delete("/Workspaces/{id}", workspace.DeleteWorkspace(log, services))
 		r.Delete("/Users/", users.NewDelete(log, services))
 		r.Post("/workspaces/{workspace_id}/blocks", blocks.NewCreateBlockHandler(log, services))
+		r.Patch("/workspaces/{workspace_id}/blocks/{block_id}", blocks.NewUpdateBlockHandler(log, services))
 	})
 
 	log.Info("starting server", slog.String("address", cfg.Address))
